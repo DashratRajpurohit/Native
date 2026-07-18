@@ -1,0 +1,40 @@
+# Ignore First-app
+Learn/First-app/
+
+# dependencies
+Learn/CommanApp/node_modules/
+
+# Expo
+Learn/CommanApp/.expo/
+Learn/CommanApp/dist/
+Learn/CommanApp/web-build/
+Learn/CommanApp/expo-env.d.ts
+
+# Native
+Learn/CommanApp/.kotlin/
+Learn/CommanApp/*.orig.*
+Learn/CommanApp/*.jks
+Learn/CommanApp/*.p8
+Learn/CommanApp/*.p12
+Learn/CommanApp/*.key
+Learn/CommanApp/*.mobileprovision
+
+# Metro
+Learn/CommanApp/.metro-health-check*
+
+# debug
+Learn/CommanApp/npm-debug.*
+Learn/CommanApp/yarn-debug.*
+Learn/CommanApp/yarn-error.*
+
+# macOS
+.DS_Store
+Learn/CommanApp/*.pem
+
+# local env files
+Learn/CommanApp/.env*.local
+
+# typescript
+Learn/CommanApp/*.tsbuildinfo
+
+Learn/CommanApp/app-example
