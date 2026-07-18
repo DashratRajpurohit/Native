@@ -19,6 +19,17 @@ const MAPPING = {
   'chevron.left.forwardslash.chevron.right': 'code',
   'chevron.right': 'chevron-right',
   'location.fill': 'place',
+  'chart.bar.fill': 'bar-chart',
+  'person.fill': 'person',
+  'camera.fill': 'camera-alt',
+  'book.fill': 'contacts',
+  'doc.text.fill': 'description',
+  'calendar': 'event',
+  'clock.fill': 'access-time',
+  'checkmark.circle.fill': 'check-circle',
+  'plus.circle.fill': 'add-circle',
+  'list.bullet': 'list',
+  'bell.fill': 'notifications',
 } as IconMapping;
 
 /**
