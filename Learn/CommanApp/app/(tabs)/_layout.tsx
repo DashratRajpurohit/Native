@@ -45,6 +45,13 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="create-survey"
+        options={{
+          title: 'New Survey',
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="plus.circle.fill" color={color} />,
+        }}
+      />
+      <Tabs.Screen
         name="camera"
         options={{
           title: 'Camera',
@@ -52,12 +59,13 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="create-survey"
+        name="location"
         options={{
-          title: 'New Survey',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="plus.circle.fill" color={color} />,
+          title: 'Location',
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="location.fill" color={color} />,
         }}
       />
+
     </Tabs>
   );
 }
