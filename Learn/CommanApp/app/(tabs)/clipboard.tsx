@@ -1,157 +1,199 @@
-import { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import {
   Alert,
-  Clipboard,
+  SafeAreaView,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
+import * as Haptics from 'expo-haptics';
 
-function generateSurveyId(): string {
-  const rand = Math.random().toString(36).slice(2, 8).toUpperCase();
-  return `SRV-${new Date().getFullYear()}-${rand}`;
-}
+import { AppHeader } from '@/components/app-header';
+import { Colors } from '@/constants/theme';
+import { generateId } from '@/constants/survey';
+import { IconSymbol } from '@/components/ui/icon-symbol';
 
 export default function ClipboardScreen() {
-  const [surveyId, setSurveyId] = useState(generateSurveyId());
+  const [surveyId, setSurveyId] = useState(generateId());
   const [notes, setNotes] = useState('');
   const [pasted, setPasted] = useState('');
 
-  useEffect(() => {
-    // nothing to fetch on mount
-  }, []);
-
-  const copySurveyId = () => {
-    Clipboard.setString(surveyId);
-    Alert.alert('Copied', `Survey ID copied: ${surveyId}`);
+  const copySurveyId = async () => {
+    await Clipboard.setStringAsync(surveyId);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    Alert.alert('Survey ID Copied', `Survey ID copied to clipboard: ${surveyId}`);
   };
 
-  const copyContactNumber = () => {
-    const number = '+919999888777';
-    Clipboard.setString(number);
-    Alert.alert('Copied', `Contact number copied: ${number}`);
+  const copyContactNumber = async () => {
+    const number = '+91 99998 88777';
+    await Clipboard.setStringAsync(number);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    Alert.alert('Contact Number Copied', `Contact number copied to clipboard: ${number}`);
   };
 
-  const copyCurrentLocation = () => {
-    const loc = 'Lat: 21.1458, Lng: 79.0882';
-    Clipboard.setString(loc);
-    Alert.alert('Copied', `Location copied: ${loc}`);
+  const copyCurrentLocation = async () => {
+    const loc = 'Lat: 21.145800, Lng: 79.088200';
+    await Clipboard.setStringAsync(loc);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    Alert.alert('Location Copied', `Location copied to clipboard: ${loc}`);
   };
 
   const pasteNotes = async () => {
-    const text = await Clipboard.getString();
+    Haptics.selectionAsync();
+    const text = await Clipboard.getStringAsync();
+    if (!text) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      Alert.alert('Clipboard Empty', 'No text found in clipboard to paste.');
+      return;
+    }
     setPasted(text);
     setNotes((prev) => (prev ? `${prev}\n${text}` : text));
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
   };
 
-  const clearClipboard = () => {
-    Alert.alert('Clear Clipboard', 'Remove the current clipboard content?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Clear',
-        style: 'destructive',
-        onPress: () => {
-          Clipboard.setString('');
-          setPasted('');
-          Alert.alert('Cleared', 'Clipboard data cleared.');
+  const clearClipboard = async () => {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+    Alert.alert(
+      'Clear Clipboard Data',
+      'Are you sure you want to erase current clipboard contents?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Clear Data',
+          style: 'destructive',
+          onPress: async () => {
+            await Clipboard.setStringAsync('');
+            setPasted('');
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+            Alert.alert('Cleared', 'Clipboard data erased successfully.');
+          },
         },
-      },
-    ]);
+      ]
+    );
   };
 
-  const regenerateId = () => setSurveyId(generateSurveyId());
+  const regenerateId = () => {
+    Haptics.selectionAsync();
+    setSurveyId(generateId());
+  };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.heading}>Clipboard Module</Text>
+    <SafeAreaView style={styles.safeContainer}>
+      <AppHeader title="Clipboard Module" subtitle="Module 6 · Quick Copy & Paste" />
 
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Survey ID</Text>
-        <Text style={styles.value}>{surveyId}</Text>
-        <View style={styles.row}>
-          <TouchableOpacity style={styles.btnPrimary} onPress={copySurveyId}>
-            <Text style={styles.btnText}>Copy Survey ID</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.btnGhost} onPress={regenerateId}>
-            <Text style={styles.btnGhostText}>New</Text>
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        {/* Survey ID Card */}
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>SURVEY IDENTIFIER</Text>
+          <Text style={styles.valueText}>{surveyId}</Text>
+
+          <View style={styles.row}>
+            <TouchableOpacity style={styles.btnPrimary} onPress={copySurveyId}>
+              <IconSymbol name="doc.on.doc.fill" size={16} color={Colors.dark} />
+              <Text style={styles.btnPrimaryText}>COPY SURVEY ID</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.btnOutline} onPress={regenerateId}>
+              <Text style={styles.btnOutlineText}>NEW ID</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Contact Number Card */}
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>FIELD INSPECTOR CONTACT</Text>
+          <Text style={styles.valueText}>+91 99998 88777</Text>
+          <TouchableOpacity style={styles.btnPrimary} onPress={copyContactNumber}>
+            <IconSymbol name="phone.fill" size={16} color={Colors.dark} />
+            <Text style={styles.btnPrimaryText}>COPY CONTACT NUMBER</Text>
           </TouchableOpacity>
         </View>
-      </View>
 
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Contact Number</Text>
-        <Text style={styles.value}>+919999888777</Text>
-        <TouchableOpacity style={styles.btnPrimary} onPress={copyContactNumber}>
-          <Text style={styles.btnText}>Copy Contact Number</Text>
+        {/* Current Location Card */}
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>CURRENT GPS COORDINATES</Text>
+          <Text style={styles.valueText}>Lat: 21.145800, Lng: 79.088200</Text>
+          <TouchableOpacity style={styles.btnPrimary} onPress={copyCurrentLocation}>
+            <IconSymbol name="location.fill" size={16} color={Colors.dark} />
+            <Text style={styles.btnPrimaryText}>COPY CURRENT LOCATION</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Paste Notes Card */}
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>NOTES (PASTE FROM CLIPBOARD)</Text>
+          <TextInput
+            style={styles.notesInput}
+            placeholder="Paste clipboard contents into notes..."
+            value={notes}
+            onChangeText={setNotes}
+            multiline
+            textAlignVertical="top"
+            placeholderTextColor="#8679A8"
+          />
+
+          <TouchableOpacity style={styles.btnPaste} onPress={pasteNotes}>
+            <IconSymbol name="arrow.right.doc.on.clipboard" size={18} color={Colors.dark} />
+            <Text style={styles.btnPasteText}>PASTE FROM CLIPBOARD</Text>
+          </TouchableOpacity>
+
+          {pasted ? (
+            <View style={styles.pastedBox}>
+              <Text style={styles.pastedLabel}>LAST PASTED CONTENT:</Text>
+              <Text style={styles.pastedText} numberOfLines={2}>
+                &quot;{pasted}&quot;
+              </Text>
+            </View>
+          ) : null}
+        </View>
+
+        {/* Clear Clipboard Button */}
+        <TouchableOpacity style={styles.btnDanger} onPress={clearClipboard}>
+          <IconSymbol name="trash.fill" size={18} color="#FFF" />
+          <Text style={styles.btnDangerText}>CLEAR CLIPBOARD DATA</Text>
         </TouchableOpacity>
-      </View>
-
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Current Location</Text>
-        <Text style={styles.value}>Lat: 21.1458, Lng: 79.0882</Text>
-        <TouchableOpacity style={styles.btnPrimary} onPress={copyCurrentLocation}>
-          <Text style={styles.btnText}>Copy Current Location</Text>
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Notes (Paste from Clipboard)</Text>
-        <TextInput
-          style={styles.notes}
-          placeholder="Paste clipboard content into notes…"
-          value={notes}
-          onChangeText={setNotes}
-          multiline
-          textAlignVertical="top"
-        />
-        <TouchableOpacity style={styles.btnSecondary} onPress={pasteNotes}>
-          <Text style={styles.btnText}>Paste Notes</Text>
-        </TouchableOpacity>
-        {pasted.length > 0 ? (
-          <Text style={styles.pastedHint}>Last pasted: {pasted}</Text>
-        ) : null}
-      </View>
-
-      <TouchableOpacity style={styles.btnDanger} onPress={clearClipboard}>
-        <Text style={styles.btnText}>Clear Clipboard Data</Text>
-      </TouchableOpacity>
-    </View>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  safeContainer: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
-    padding: 20,
+    backgroundColor: Colors.light.background,
   },
-  heading: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#0a7ea4',
-    textAlign: 'center',
-    marginVertical: 10,
+  content: {
+    padding: 16,
+    paddingBottom: 40,
   },
   card: {
-    backgroundColor: '#fff',
-    borderRadius: 14,
     padding: 16,
+    borderRadius: 14,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 2.5,
+    borderColor: Colors.dark,
+    shadowColor: Colors.dark,
+    shadowOffset: { width: 4, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 4,
     marginBottom: 14,
   },
   cardTitle: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#888',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginBottom: 6,
+    fontSize: 12,
+    fontWeight: '900',
+    color: Colors.dark,
+    letterSpacing: 0.8,
+    marginBottom: 8,
   },
-  value: {
+  valueText: {
     fontSize: 18,
-    fontWeight: '600',
-    color: '#222',
+    fontWeight: '900',
+    color: Colors.dark,
     marginBottom: 12,
   },
   row: {
@@ -160,55 +202,118 @@ const styles = StyleSheet.create({
   },
   btnPrimary: {
     flex: 1,
-    backgroundColor: '#0a7ea4',
-    borderRadius: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: Colors.primary,
+    borderRadius: 12,
+    borderWidth: 2.5,
+    borderColor: Colors.dark,
+    shadowColor: Colors.dark,
+    shadowOffset: { width: 2.5, height: 2.5 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 3,
     paddingVertical: 12,
-    alignItems: 'center',
   },
-  btnSecondary: {
-    backgroundColor: '#e0f2f7',
-    borderRadius: 10,
+  btnPrimaryText: {
+    color: Colors.dark,
+    fontSize: 13,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+  },
+  btnOutline: {
+    backgroundColor: '#FFF',
+    borderRadius: 12,
+    borderWidth: 2.5,
+    borderColor: Colors.dark,
     paddingVertical: 12,
+    paddingHorizontal: 16,
     alignItems: 'center',
+    justifyContent: 'center',
   },
-  btnGhost: {
-    backgroundColor: '#eee',
-    borderRadius: 10,
-    paddingVertical: 12,
-    paddingHorizontal: 18,
-    alignItems: 'center',
+  btnOutlineText: {
+    color: Colors.dark,
+    fontWeight: '900',
+    fontSize: 12,
   },
-  btnGhostText: {
-    color: '#0a7ea4',
-    fontWeight: '600',
-  },
-  btnDanger: {
-    backgroundColor: '#d32f2f',
-    borderRadius: 10,
-    paddingVertical: 14,
-    alignItems: 'center',
-    marginTop: 4,
-    marginBottom: 30,
-  },
-  btnText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  notes: {
+  notesInput: {
+    backgroundColor: Colors.light.background,
+    borderWidth: 2,
+    borderColor: Colors.dark,
+    borderRadius: 12,
+    padding: 12,
+    fontSize: 14,
+    fontWeight: '700',
+    color: Colors.dark,
     height: 90,
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.1)',
-    borderRadius: 10,
-    padding: 10,
-    fontSize: 15,
-    color: '#222',
     marginBottom: 12,
   },
-  pastedHint: {
+  btnPaste: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: Colors.primary,
+    borderRadius: 12,
+    borderWidth: 2.5,
+    borderColor: Colors.dark,
+    shadowColor: Colors.dark,
+    shadowOffset: { width: 2.5, height: 2.5 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 3,
+    paddingVertical: 12,
+  },
+  btnPasteText: {
+    color: Colors.dark,
+    fontSize: 13,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+  },
+  pastedBox: {
+    marginTop: 12,
+    backgroundColor: '#F7F5F0',
+    borderWidth: 1.5,
+    borderColor: Colors.dark,
+    borderRadius: 8,
+    padding: 10,
+  },
+  pastedLabel: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: Colors.light.textMuted,
+    marginBottom: 2,
+  },
+  pastedText: {
     fontSize: 12,
-    color: '#888',
-    marginTop: 8,
+    fontWeight: '800',
+    color: Colors.dark,
     fontStyle: 'italic',
+  },
+  btnDanger: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: Colors.danger,
+    borderRadius: 14,
+    borderWidth: 2.5,
+    borderColor: Colors.dark,
+    shadowColor: Colors.dark,
+    shadowOffset: { width: 4, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 4,
+    paddingVertical: 15,
+    marginTop: 6,
+    marginBottom: 20,
+  },
+  btnDangerText: {
+    color: '#FFF',
+    fontSize: 14,
+    fontWeight: '900',
+    letterSpacing: 0.5,
   },
 });

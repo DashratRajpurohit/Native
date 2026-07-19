@@ -1,14 +1,21 @@
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  Clipboard,
+  SafeAreaView,
+  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
 import * as Location from 'expo-location';
+import * as Clipboard from 'expo-clipboard';
+import * as Haptics from 'expo-haptics';
+
+import { AppHeader } from '@/components/app-header';
+import { Colors } from '@/constants/theme';
+import { IconSymbol } from '@/components/ui/icon-symbol';
 
 export default function LocationScreen() {
   const [permission, requestPermission] = Location.useForegroundPermissions();
@@ -22,12 +29,18 @@ export default function LocationScreen() {
   const [address, setAddress] = useState('');
 
   const getLocation = async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setLoading(true);
+
     if (!permission?.granted) {
       const result = await requestPermission();
       if (!result.granted) {
         setLoading(false);
-        Alert.alert('Permission denied', 'Location permission is required to show your position.');
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        Alert.alert(
+          'Permission Denied',
+          'Location permission is required to acquire your GPS position.'
+        );
         return;
       }
     }
@@ -39,19 +52,28 @@ export default function LocationScreen() {
         longitude: loc.coords.longitude,
         accuracy: loc.coords.accuracy,
       });
+
       const addrs = await Location.reverseGeocodeAsync({
         latitude: loc.coords.latitude,
         longitude: loc.coords.longitude,
       });
       if (addrs.length > 0) {
         const a = addrs[0];
-        const parts = [a.name, a.street, a.district, a.city, a.region, a.country].filter(Boolean);
+        const parts = [
+          a.name,
+          a.street,
+          a.district,
+          a.city,
+          a.region,
+          a.country,
+        ].filter(Boolean);
         setAddress(parts.join(', '));
       } else {
         setAddress('');
       }
     } catch {
-      Alert.alert('Error', 'Unable to fetch location. Please try again.');
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      Alert.alert('Error', 'Unable to fetch current location. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -61,135 +83,288 @@ export default function LocationScreen() {
     getLocation();
   }, []);
 
-  const copyToClipboard = () => {
+  const copyToClipboard = async () => {
     if (!coords) return;
     const text = `Lat: ${coords.latitude.toFixed(6)}, Lng: ${coords.longitude.toFixed(6)}`;
-    Clipboard.setString(text);
-    Alert.alert('Copied', 'Current location copied to clipboard.');
+    await Clipboard.setStringAsync(text);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    Alert.alert('Location Copied', `Copied to clipboard:\n${text}`);
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.heading}>Location Module</Text>
+    <SafeAreaView style={styles.safeContainer}>
+      <AppHeader title="Location Module" subtitle="Module 4 · GPS Positioning" />
 
-      {loading ? (
-        <View style={styles.center}>
-          <ActivityIndicator size="large" color="#0a7ea4" />
-          <Text style={styles.loadingText}>Fetching location…</Text>
-        </View>
-      ) : coords ? (
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Latitude</Text>
-          <Text style={styles.value}>{coords.latitude.toFixed(6)}</Text>
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        {loading ? (
+          <View style={styles.loadingCard}>
+            <ActivityIndicator size="large" color={Colors.dark} />
+            <Text style={styles.loadingText}>ACQUIRING GPS SIGNAL...</Text>
+          </View>
+        ) : coords ? (
+          <View style={styles.card}>
+            <View style={styles.cardHeader}>
+              <Text style={styles.cardTitle}>GPS DATA</Text>
+              <View style={styles.activeTag}>
+                <Text style={styles.activeTagText}>ACQUIRED</Text>
+              </View>
+            </View>
 
-          <Text style={styles.cardTitle}>Longitude</Text>
-          <Text style={styles.value}>{coords.longitude.toFixed(6)}</Text>
+            <View style={styles.gridRow}>
+              <View style={styles.gridBox}>
+                <Text style={styles.gridLabel}>LATITUDE</Text>
+                <Text style={styles.gridValue}>{coords.latitude.toFixed(6)}</Text>
+              </View>
 
-          <Text style={styles.cardTitle}>Accuracy</Text>
-          <Text style={styles.value}>
-            {coords.accuracy != null ? `${coords.accuracy.toFixed(1)} m` : 'N/A'}
-          </Text>
+              <View style={styles.gridBox}>
+                <Text style={styles.gridLabel}>LONGITUDE</Text>
+                <Text style={styles.gridValue}>{coords.longitude.toFixed(6)}</Text>
+              </View>
+            </View>
 
-          {address ? (
-            <>
-              <Text style={styles.cardTitle}>Address</Text>
-              <Text style={styles.address}>{address}</Text>
-            </>
-          ) : null}
+            <View style={styles.accuracyBox}>
+              <IconSymbol name="location.fill" size={16} color={Colors.dark} />
+              <Text style={styles.accuracyLabel}>ACCURACY:</Text>
+              <Text style={styles.accuracyValue}>
+                {coords.accuracy != null ? `±${coords.accuracy.toFixed(1)} meters` : 'N/A'}
+              </Text>
+            </View>
 
-          <TouchableOpacity style={styles.copyBtn} onPress={copyToClipboard}>
-            <Text style={styles.copyText}>Copy to Clipboard</Text>
-          </TouchableOpacity>
+            {address ? (
+              <View style={styles.addressBox}>
+                <Text style={styles.addressLabel}>REVERSE GEOCODED ADDRESS</Text>
+                <Text style={styles.addressText}>{address}</Text>
+              </View>
+            ) : null}
 
-          <TouchableOpacity style={styles.refreshBtn} onPress={getLocation}>
-            <Text style={styles.refreshText}>Refresh Location</Text>
-          </TouchableOpacity>
-        </View>
-      ) : (
-        <View style={styles.center}>
-          <Text style={styles.errorText}>Location unavailable</Text>
-          <TouchableOpacity style={styles.refreshBtn} onPress={getLocation}>
-            <Text style={styles.refreshText}>Try Again</Text>
-          </TouchableOpacity>
-        </View>
-      )}
-    </View>
+            <View style={styles.actionBlock}>
+              <TouchableOpacity style={styles.copyBtn} onPress={copyToClipboard}>
+                <IconSymbol name="doc.on.doc.fill" size={18} color={Colors.dark} />
+                <Text style={styles.copyText}>COPY TO CLIPBOARD</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.refreshBtn} onPress={getLocation}>
+                <IconSymbol name="arrow.clockwise" size={18} color={Colors.dark} />
+                <Text style={styles.refreshText}>REFRESH LOCATION</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        ) : (
+          <View style={styles.errorCard}>
+            <IconSymbol name="exclamationmark.triangle.fill" size={36} color={Colors.danger} />
+            <Text style={styles.errorTitle}>LOCATION UNAVAILABLE</Text>
+            <Text style={styles.errorSub}>
+              Unable to acquire GPS coordinates. Ensure Location permissions are enabled.
+            </Text>
+
+            <TouchableOpacity style={styles.refreshBtn} onPress={getLocation}>
+              <Text style={styles.refreshText}>TRY AGAIN</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  safeContainer: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
-    padding: 20,
+    backgroundColor: Colors.light.background,
   },
-  heading: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#0a7ea4',
-    textAlign: 'center',
-    marginVertical: 15,
+  content: {
+    padding: 16,
+    paddingBottom: 40,
   },
-  center: {
-    flex: 1,
+  loadingCard: {
+    backgroundColor: Colors.primary,
+    borderRadius: 16,
+    borderWidth: 3,
+    borderColor: Colors.dark,
+    shadowColor: Colors.dark,
+    shadowOffset: { width: 4, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 5,
+    padding: 36,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 12,
+    gap: 14,
+    marginTop: 40,
   },
   loadingText: {
-    fontSize: 16,
-    color: '#666',
-  },
-  errorText: {
-    fontSize: 16,
-    color: '#d32f2f',
+    fontSize: 14,
+    fontWeight: '900',
+    color: Colors.dark,
+    letterSpacing: 0.8,
   },
   card: {
-    backgroundColor: '#fff',
+    padding: 16,
     borderRadius: 14,
-    padding: 18,
-    gap: 4,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 2.5,
+    borderColor: Colors.dark,
+    shadowColor: Colors.dark,
+    shadowOffset: { width: 4, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 4,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 14,
   },
   cardTitle: {
     fontSize: 13,
-    fontWeight: '600',
-    color: '#888',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginTop: 10,
+    fontWeight: '900',
+    color: Colors.dark,
+    letterSpacing: 0.8,
   },
-  value: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#222',
+  activeTag: {
+    backgroundColor: Colors.primary,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    borderWidth: 1.5,
+    borderColor: Colors.dark,
   },
-  address: {
-    fontSize: 15,
-    color: '#555',
-    fontStyle: 'italic',
+  activeTagText: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: Colors.dark,
+  },
+  gridRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 12,
+  },
+  gridBox: {
+    flex: 1,
+    backgroundColor: Colors.light.background,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: Colors.dark,
+    padding: 12,
+  },
+  gridLabel: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: Colors.light.textMuted,
+    letterSpacing: 0.5,
+    marginBottom: 4,
+  },
+  gridValue: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: Colors.dark,
+  },
+  accuracyBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.primary,
+    borderWidth: 2,
+    borderColor: Colors.dark,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    gap: 6,
+    marginBottom: 14,
+  },
+  accuracyLabel: {
+    fontSize: 11,
+    fontWeight: '900',
+    color: Colors.dark,
+  },
+  accuracyValue: {
+    fontSize: 12,
+    fontWeight: '900',
+    color: Colors.dark,
+  },
+  addressBox: {
+    backgroundColor: '#FAF8F5',
+    borderWidth: 2,
+    borderColor: Colors.dark,
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 16,
+  },
+  addressLabel: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: Colors.light.textMuted,
+    letterSpacing: 0.5,
+    marginBottom: 4,
+  },
+  addressText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: Colors.dark,
+    lineHeight: 18,
+  },
+  actionBlock: {
+    gap: 10,
   },
   copyBtn: {
-    marginTop: 20,
-    paddingVertical: 14,
-    backgroundColor: '#0a7ea4',
-    borderRadius: 10,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: Colors.primary,
+    borderRadius: 12,
+    borderWidth: 2.5,
+    borderColor: Colors.dark,
+    shadowColor: Colors.dark,
+    shadowOffset: { width: 3, height: 3 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 4,
+    paddingVertical: 14,
   },
   copyText: {
-    color: '#fff',
-    fontSize: 17,
-    fontWeight: '600',
+    color: Colors.dark,
+    fontSize: 14,
+    fontWeight: '900',
+    letterSpacing: 0.5,
   },
   refreshBtn: {
-    marginTop: 12,
-    paddingVertical: 12,
-    backgroundColor: '#e0f2f7',
-    borderRadius: 10,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#FFF',
+    borderRadius: 12,
+    borderWidth: 2.5,
+    borderColor: Colors.dark,
+    paddingVertical: 14,
   },
   refreshText: {
-    color: '#0a7ea4',
+    color: Colors.dark,
+    fontSize: 14,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+  },
+  errorCard: {
+    backgroundColor: '#FFF',
+    borderRadius: 16,
+    borderWidth: 3,
+    borderColor: Colors.danger,
+    padding: 24,
+    alignItems: 'center',
+    gap: 12,
+    marginTop: 30,
+  },
+  errorTitle: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '900',
+    color: Colors.danger,
+  },
+  errorSub: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: Colors.light.textMuted,
+    textAlign: 'center',
+    marginBottom: 8,
   },
 });

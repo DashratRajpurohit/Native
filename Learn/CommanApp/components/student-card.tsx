@@ -1,7 +1,5 @@
-import { Image, StyleSheet, View } from 'react-native';
-
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
+import { Image, StyleSheet, Text, View } from 'react-native';
+import { Colors } from '@/constants/theme';
 
 export type StudentDetails = {
   name: string;
@@ -17,31 +15,32 @@ export type StudentCardProps = {
 
 export function StudentCard({ student }: StudentCardProps) {
   return (
-    <ThemedView style={styles.card}>
+    <View style={styles.card}>
       <View style={styles.avatar}>
         {student.avatarUri ? (
           <Image source={{ uri: student.avatarUri }} style={styles.avatarImg} />
         ) : (
-          <ThemedText style={styles.avatarText}>
+          <Text style={styles.avatarText}>
             {student.name
               .split(' ')
               .map((p) => p[0])
               .join('')
               .slice(0, 2)
               .toUpperCase()}
-          </ThemedText>
+          </Text>
         )}
       </View>
       <View style={styles.info}>
-        <ThemedText type="subtitle" style={styles.name}>
-          {student.name}
-        </ThemedText>
-        <ThemedText style={styles.detail}>Roll No: {student.rollNo}</ThemedText>
-        <ThemedText style={styles.detail}>
-          {student.course} · Sem {student.semester}
-        </ThemedText>
+        <View style={styles.badge}>
+          <Text style={styles.badgeText}>STUDENT INSPECTOR</Text>
+        </View>
+        <Text style={styles.name}>{student.name}</Text>
+        <Text style={styles.detail}>Roll No: {student.rollNo}</Text>
+        <Text style={styles.detail}>
+          {student.course} · Semester {student.semester}
+        </Text>
       </View>
-    </ThemedView>
+    </View>
   );
 }
 
@@ -50,16 +49,24 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.06)',
-    marginBottom: 16,
+    borderRadius: 14,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 2.5,
+    borderColor: Colors.dark,
+    shadowColor: Colors.dark,
+    shadowOffset: { width: 4, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 4,
+    marginBottom: 18,
   },
   avatar: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: '#0a7ea4',
+    width: 60,
+    height: 60,
+    borderRadius: 14,
+    backgroundColor: Colors.primary,
+    borderWidth: 2,
+    borderColor: Colors.dark,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 14,
@@ -67,21 +74,39 @@ const styles = StyleSheet.create({
   avatarImg: {
     width: 56,
     height: 56,
-    borderRadius: 28,
+    borderRadius: 12,
   },
   avatarText: {
-    color: '#fff',
-    fontSize: 20,
-    fontWeight: 'bold',
+    color: Colors.dark,
+    fontSize: 22,
+    fontWeight: '900',
   },
   info: {
     flex: 1,
   },
-  name: {
+  badge: {
+    alignSelf: 'flex-start',
+    backgroundColor: Colors.dark,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
     marginBottom: 4,
+  },
+  badgeText: {
+    color: Colors.primary,
+    fontSize: 9,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+  },
+  name: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: Colors.dark,
+    marginBottom: 2,
   },
   detail: {
     fontSize: 13,
-    opacity: 0.65,
+    fontWeight: '700',
+    color: Colors.light.textMuted,
   },
 });

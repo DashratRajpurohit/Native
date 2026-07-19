@@ -1,70 +1,135 @@
-import { Tabs } from 'expo-router';
 import React from 'react';
+import { StyleSheet, View } from 'react-native';
+import { Tabs } from 'expo-router';
 
 import { HapticTab } from '@/components/haptic-tab';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
-
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
         headerShown: false,
         tabBarButton: HapticTab,
+        tabBarActiveTintColor: Colors.dark,
+        tabBarInactiveTintColor: Colors.light.textMuted,
+        tabBarStyle: styles.tabBar,
+        tabBarLabelStyle: styles.tabBarLabel,
       }}>
+      {/* Tab 1: Dashboard */}
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
+          title: 'Dashboard',
+          tabBarIcon: ({ color, focused }) => (
+            <View style={[styles.iconBox, focused && styles.iconBoxFocused]}>
+              <IconSymbol size={22} name="house.fill" color={color} />
+            </View>
+          ),
+        }}
+      />
+
+      {/* Tab 2: New Survey */}
+      <Tabs.Screen
+        name="create-survey"
+        options={{
+          title: 'New Survey',
+          tabBarIcon: ({ color, focused }) => (
+            <View style={[styles.iconBox, focused && styles.iconBoxFocused]}>
+              <IconSymbol size={22} name="plus.circle.fill" color={color} />
+            </View>
+          ),
+        }}
+      />
+
+      {/* Tab 3: History */}
+      <Tabs.Screen
+        name="survey-history"
+        options={{
+          title: 'History',
+          tabBarIcon: ({ color, focused }) => (
+            <View style={[styles.iconBox, focused && styles.iconBoxFocused]}>
+              <IconSymbol size={22} name="clock.fill" color={color} />
+            </View>
+          ),
+        }}
+      />
+
+      {/* Tab 4: Profile */}
+      <Tabs.Screen
+        name="profile"
+        options={{
+          title: 'Profile',
+          tabBarIcon: ({ color, focused }) => (
+            <View style={[styles.iconBox, focused && styles.iconBoxFocused]}>
+              <IconSymbol size={22} name="person.fill" color={color} />
+            </View>
+          ),
+        }}
+      />
+
+      {/* Auxiliary module routes hidden from bottom tab bar but accessible via navigation */}
+      <Tabs.Screen
+        name="camera"
+        options={{
+          href: null,
         }}
       />
       <Tabs.Screen
         name="contacts"
         options={{
-          title: 'Contacts',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="book.fill" color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="create-survey"
-        options={{
-          title: 'New Survey',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="plus.circle.fill" color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="camera"
-        options={{
-          title: 'Camera',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="camera.fill" color={color} />,
+          href: null,
         }}
       />
       <Tabs.Screen
         name="location"
         options={{
-          title: 'Location',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="location.fill" color={color} />,
+          href: null,
         }}
       />
       <Tabs.Screen
         name="clipboard"
         options={{
-          title: 'Clipboard',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="doc.on.clipboard.fill" color={color} />,
+          href: null,
         }}
       />
       <Tabs.Screen
-        name="survey-history"
+        name="survey-preview"
         options={{
-          title: 'History',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="clock.fill" color={color} />,
+          href: null,
         }}
       />
     </Tabs>
   );
 }
+
+const styles = StyleSheet.create({
+  tabBar: {
+    backgroundColor: '#FFFFFF',
+    borderTopWidth: 3,
+    borderTopColor: Colors.dark,
+    height: 64,
+    paddingBottom: 8,
+    paddingTop: 6,
+    shadowColor: Colors.dark,
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 0,
+    elevation: 10,
+  },
+  tabBarLabel: {
+    fontSize: 11,
+    fontWeight: '900',
+    letterSpacing: 0.3,
+  },
+  iconBox: {
+    padding: 4,
+    borderRadius: 8,
+  },
+  iconBoxFocused: {
+    backgroundColor: Colors.primary,
+    borderWidth: 1.5,
+    borderColor: Colors.dark,
+  },
+});

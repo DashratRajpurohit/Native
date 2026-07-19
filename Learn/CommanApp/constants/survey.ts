@@ -15,35 +15,57 @@ export type Survey = {
   longitude: number | null;
   notes: string;
   createdAt: string;
+  status?: 'completed' | 'pending';
 };
 
 const STORAGE = 'surveys.json';
 
 export async function loadSurveys(): Promise<Survey[]> {
-  const file = new File(Paths.documents, STORAGE);
-  if (!file.exists) return [];
-  const text = await file.text();
   try {
-    return JSON.parse(text) as Survey[];
-  } catch {
+    const file = new File(Paths.document, STORAGE);
+    if (!file.exists) return [];
+    const text = await file.text();
+    const parsed = JSON.parse(text) as Survey[];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (error) {
+    console.warn('Error loading surveys from file:', error);
     return [];
   }
 }
 
 export async function saveSurvey(survey: Survey): Promise<void> {
-  const all = await loadSurveys();
-  all.push(survey);
-  const file = new File(Paths.documents, STORAGE);
-  file.create({ idempotent: true });
-  await file.write(JSON.stringify(all, null, 2));
+  try {
+    const all = await loadSurveys();
+    const existingIndex = all.findIndex((s) => s.id === survey.id);
+    if (existingIndex >= 0) {
+      all[existingIndex] = { ...survey };
+    } else {
+      all.push({ ...survey, status: survey.status ?? 'completed' });
+    }
+    const file = new File(Paths.document, STORAGE);
+    if (!file.exists) {
+      file.create();
+    }
+    await file.write(JSON.stringify(all, null, 2));
+  } catch (error) {
+    console.error('Error saving survey:', error);
+    throw error;
+  }
 }
 
 export async function deleteSurvey(id: string): Promise<void> {
-  const all = await loadSurveys();
-  const filtered = all.filter((s) => s.id !== id);
-  const file = new File(Paths.documents, STORAGE);
-  file.create({ idempotent: true });
-  await file.write(JSON.stringify(filtered, null, 2));
+  try {
+    const all = await loadSurveys();
+    const filtered = all.filter((s) => s.id !== id);
+    const file = new File(Paths.document, STORAGE);
+    if (!file.exists) {
+      file.create();
+    }
+    await file.write(JSON.stringify(filtered, null, 2));
+  } catch (error) {
+    console.error('Error deleting survey:', error);
+    throw error;
+  }
 }
 
 export function generateId(): string {

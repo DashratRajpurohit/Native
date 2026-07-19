@@ -1,10 +1,10 @@
-import { StyleSheet, View } from 'react-native';
+import React, { useState } from 'react';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import * as Haptics from 'expo-haptics';
 
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
 import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { IconSymbol } from '@/components/ui/icon-symbol';
+import { DrawerMenu } from '@/components/drawer-menu';
 
 export type AppHeaderProps = {
   title: string;
@@ -19,64 +19,124 @@ export function AppHeader({
   showNotification = true,
   onNotificationPress,
 }: AppHeaderProps) {
-  const colorScheme = useColorScheme();
-  const tint = Colors[colorScheme ?? 'light'].tint;
+  const [drawerOpen, setDrawerOpen] = useState(false);
+
+  const openDrawer = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setDrawerOpen(true);
+  };
 
   return (
-    <ThemedView style={styles.container}>
-      <View style={styles.row}>
-        <View style={styles.textWrap}>
-          {subtitle ? <ThemedText style={styles.subtitle}>{subtitle}</ThemedText> : null}
-          <ThemedText type="title" style={styles.title}>
-            {title}
-          </ThemedText>
-        </View>
-        {showNotification ? (
-          <View style={styles.iconBtn}>
-            <IconSymbol name="bell.fill" size={22} color={tint} />
-            <View style={styles.badge} />
+    <>
+      <View style={styles.container}>
+        <View style={styles.row}>
+          <TouchableOpacity
+            style={styles.menuBtn}
+            activeOpacity={0.8}
+            onPress={openDrawer}>
+            <IconSymbol name="list.bullet" size={20} color={Colors.dark} />
+          </TouchableOpacity>
+
+          <View style={styles.textWrap}>
+            {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+            <Text style={styles.title}>{title}</Text>
           </View>
-        ) : null}
+
+          {showNotification ? (
+            <TouchableOpacity
+              style={styles.iconBtn}
+              activeOpacity={0.8}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                if (onNotificationPress) onNotificationPress();
+              }}>
+              <IconSymbol name="bell.fill" size={20} color={Colors.dark} />
+              <View style={styles.badge} />
+            </TouchableOpacity>
+          ) : (
+            <View style={{ width: 42 }} />
+          )}
+        </View>
       </View>
-    </ThemedView>
+
+      <DrawerMenu visible={drawerOpen} onClose={() => setDrawerOpen(false)} />
+    </>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    paddingTop: 20,
-    paddingBottom: 16,
-    paddingHorizontal: 20,
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
+    backgroundColor: Colors.primary,
+    paddingTop: 14,
+    paddingBottom: 14,
+    paddingHorizontal: 16,
+    borderBottomWidth: 3,
+    borderColor: Colors.dark,
   },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    gap: 12,
+  },
+  menuBtn: {
+    width: 42,
+    height: 42,
+    borderRadius: 10,
+    backgroundColor: '#FFF',
+    borderWidth: 2.5,
+    borderColor: Colors.dark,
+    shadowColor: Colors.dark,
+    shadowOffset: { width: 2.5, height: 2.5 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 3,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   textWrap: {
     flex: 1,
+    alignItems: 'center',
   },
   subtitle: {
-    fontSize: 14,
-    opacity: 0.7,
-    marginBottom: 2,
+    fontSize: 11,
+    fontWeight: '800',
+    color: Colors.dark,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+    opacity: 0.8,
   },
   title: {
-    fontSize: 26,
+    fontSize: 20,
+    fontWeight: '900',
+    color: Colors.dark,
+    letterSpacing: 0.5,
   },
   iconBtn: {
+    width: 42,
+    height: 42,
+    borderRadius: 10,
+    backgroundColor: '#FFF',
+    borderWidth: 2.5,
+    borderColor: Colors.dark,
+    shadowColor: Colors.dark,
+    shadowOffset: { width: 2.5, height: 2.5 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 3,
+    alignItems: 'center',
+    justifyContent: 'center',
     position: 'relative',
-    padding: 8,
   },
   badge: {
     position: 'absolute',
     top: 6,
     right: 6,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#ff6b6b',
+    width: 9,
+    height: 9,
+    borderRadius: 4.5,
+    backgroundColor: Colors.danger,
+    borderWidth: 1.5,
+    borderColor: '#FFF',
   },
 });

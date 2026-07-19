@@ -1,8 +1,9 @@
-import { useRef, useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
   Image,
+  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
@@ -13,14 +14,16 @@ import {
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as Location from 'expo-location';
 import { router } from 'expo-router';
+import * as Haptics from 'expo-haptics';
 
 import { AppHeader } from '@/components/app-header';
 import { FormField } from '@/components/form-field';
 import { PrioritySelector, type Priority } from '@/components/priority-selector';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
+import { Colors } from '@/constants/theme';
+import { generateId, type Survey } from '@/constants/survey';
+import { loadSettings } from '@/constants/settings';
+import { playShutterSound } from '@/utils/sound';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { generateId } from '@/constants/survey';
 
 export default function CreateSurveyScreen() {
   const cameraRef = useRef<CameraView>(null);
@@ -51,10 +54,11 @@ export default function CreateSurveyScreen() {
   };
 
   const openCamera = async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     if (!cameraPermission?.granted) {
       const result = await requestCameraPermission();
       if (!result.granted) {
-        Alert.alert('Permission denied', 'Camera permission is required to take a photo.');
+        Alert.alert('Permission Denied', 'Camera permission is required to take a photo.');
         return;
       }
     }
@@ -62,30 +66,46 @@ export default function CreateSurveyScreen() {
   };
 
   const takePhoto = async () => {
+    const settings = await loadSettings();
+    await playShutterSound(settings.customCameraSound);
     if (cameraRef.current) {
       const pic = await cameraRef.current.takePictureAsync();
-      setPhoto(pic.uri);
-      setShowCamera(false);
+      if (pic) {
+        setPhoto(pic.uri);
+        setShowCamera(false);
+      }
     }
   };
 
   const getLocation = async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setLocLoading(true);
-    const { status } = await Location.requestForegroundPermissionsAsync();
-    if (status !== 'granted') {
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Denied', 'Location permission is required.');
+        setLocLoading(false);
+        return;
+      }
+      const loc = await Location.getCurrentPositionAsync({});
+      setLatitude(loc.coords.latitude);
+      setLongitude(loc.coords.longitude);
+    } catch {
+      Alert.alert('Location Error', 'Unable to fetch current position.');
+    } finally {
       setLocLoading(false);
-      Alert.alert('Permission denied', 'Location permission is required.');
-      return;
     }
-    const loc = await Location.getCurrentPositionAsync({});
-    setLatitude(loc.coords.latitude);
-    setLongitude(loc.coords.longitude);
-    setLocLoading(false);
   };
 
   const handlePreview = () => {
-    if (!validate()) return;
-    const surveyData = {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    if (!validate()) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      Alert.alert('Validation Error', 'Please fill in all required fields marked with *');
+      return;
+    }
+
+    const surveyData: Survey = {
       id: generateId(),
       siteName: siteName.trim(),
       clientName: clientName.trim(),
@@ -98,7 +118,9 @@ export default function CreateSurveyScreen() {
       longitude,
       notes: notes.trim(),
       createdAt: new Date().toISOString(),
+      status: 'completed',
     };
+
     router.push({
       pathname: '/survey-preview',
       params: { data: JSON.stringify(surveyData) },
@@ -113,8 +135,10 @@ export default function CreateSurveyScreen() {
             <TouchableOpacity style={styles.captureBtn} onPress={takePhoto}>
               <View style={styles.captureInner} />
             </TouchableOpacity>
-            <TouchableOpacity style={styles.cancelBtn} onPress={() => setShowCamera(false)}>
-              <Text style={styles.cancelText}>Cancel</Text>
+            <TouchableOpacity
+              style={styles.cancelBtn}
+              onPress={() => setShowCamera(false)}>
+              <Text style={styles.cancelText}>CANCEL</Text>
             </TouchableOpacity>
           </View>
         </CameraView>
@@ -123,86 +147,359 @@ export default function CreateSurveyScreen() {
   }
 
   return (
-    <ThemedView style={styles.container}>
-      <AppHeader title="Create Survey" subtitle="Fill in the survey details" />
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <ThemedView style={styles.card}>
-          <FormField label="Site Name *" placeholder="e.g. Water Pipeline Sector 12" value={siteName} onChangeText={setSiteName} error={errors.siteName} />
-          <FormField label="Client Name *" placeholder="e.g. Nagpur Municipal Corp." value={clientName} onChangeText={setClientName} error={errors.clientName} />
-          <FormField label="Description *" placeholder="Brief about the inspection task" value={description} onChangeText={setDescription} multiline error={errors.description} />
-          <PrioritySelector value={priority} onChange={setPriority} />
-          <FormField label="Date" placeholder="YYYY-MM-DD" value={date} onChangeText={setDate} />
-        </ThemedView>
+    <SafeAreaView style={styles.safeContainer}>
+      <AppHeader title="Create Survey" subtitle="Module 2 · Inspection Form" />
 
-        <ThemedView style={styles.card}>
-          <ThemedText style={styles.sectionLabel}>Photo</ThemedText>
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        {/* Form Card */}
+        <View style={styles.card}>
+          <View style={styles.cardHeader}>
+            <Text style={styles.cardTitle}>SITE & CLIENT DETAILS</Text>
+            <Text style={styles.requiredNotice}>* Required</Text>
+          </View>
+
+          <FormField
+            label="Site Name *"
+            placeholder="e.g. Metro Pipeline Sector 12"
+            value={siteName}
+            onChangeText={setSiteName}
+            error={errors.siteName}
+          />
+
+          <FormField
+            label="Client Name *"
+            placeholder="e.g. City Municipal Corporation"
+            value={clientName}
+            onChangeText={setClientName}
+            error={errors.clientName}
+          />
+
+          <FormField
+            label="Description *"
+            placeholder="Detailed findings and inspection tasks..."
+            value={description}
+            onChangeText={setDescription}
+            multiline
+            error={errors.description}
+          />
+
+          <PrioritySelector value={priority} onChange={setPriority} />
+
+          <FormField
+            label="Survey Date (YYYY-MM-DD)"
+            placeholder="YYYY-MM-DD"
+            value={date}
+            onChangeText={setDate}
+          />
+        </View>
+
+        {/* Media & Attachments Card */}
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>PHOTO ATTACHMENT</Text>
           {photo ? (
             <View style={styles.photoRow}>
               <Image source={{ uri: photo }} style={styles.thumb} />
-              <TouchableOpacity onPress={() => setPhoto(null)}><Text style={styles.removeText}>Remove</Text></TouchableOpacity>
+              <View style={styles.photoMeta}>
+                <Text style={styles.photoCapturedText}>✓ Photo Captured</Text>
+                <TouchableOpacity
+                  style={styles.removeBtn}
+                  onPress={() => {
+                    Haptics.selectionAsync();
+                    setPhoto(null);
+                  }}>
+                  <Text style={styles.removeText}>Remove Photo</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           ) : (
-            <TouchableOpacity style={styles.addBtn} onPress={openCamera}>
-              <IconSymbol name="camera.fill" size={18} color="#0a7ea4" />
-              <ThemedText style={styles.addBtnText}>Capture Photo</ThemedText>
+            <TouchableOpacity style={styles.actionBtn} onPress={openCamera}>
+              <IconSymbol name="camera.fill" size={18} color={Colors.dark} />
+              <Text style={styles.actionBtnText}>CAPTURE PHOTO</Text>
             </TouchableOpacity>
           )}
-        </ThemedView>
+        </View>
 
-        <ThemedView style={styles.card}>
-          <ThemedText style={styles.sectionLabel}>Contact</ThemedText>
-          <TextInput style={styles.inputField} placeholder="Contact phone number" value={contact} onChangeText={setContact} keyboardType="phone-pad" />
-        </ThemedView>
+        {/* Contact & Location Card */}
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>CONTACT & LOCATION TAGGING</Text>
 
-        <ThemedView style={styles.card}>
-          <ThemedText style={styles.sectionLabel}>Location</ThemedText>
-          {latitude != null ? (
-            <ThemedText style={styles.locText}>Lat: {latitude.toFixed(6)}, Lng: {longitude!.toFixed(6)}</ThemedText>
-          ) : null}
-          <TouchableOpacity style={[styles.addBtn, locLoading && styles.disabled]} onPress={getLocation} disabled={locLoading}>
-            {locLoading ? (
-              <ActivityIndicator size="small" color="#0a7ea4" />
+          <View style={styles.fieldBlock}>
+            <Text style={styles.fieldLabel}>FIELD CONTACT PHONE</Text>
+            <TextInput
+              style={styles.inputField}
+              placeholder="e.g. +91 9876543210"
+              value={contact}
+              onChangeText={setContact}
+              keyboardType="phone-pad"
+              placeholderTextColor="#8679A8"
+            />
+          </View>
+
+          <View style={styles.fieldBlock}>
+            <Text style={styles.fieldLabel}>GPS POSITION</Text>
+            {latitude != null ? (
+              <View style={styles.locBadge}>
+                <Text style={styles.locText}>
+                  LAT: {latitude.toFixed(6)} | LNG: {longitude!.toFixed(6)}
+                </Text>
+              </View>
             ) : (
-              <IconSymbol name="location.fill" size={18} color="#0a7ea4" />
+              <Text style={styles.locEmpty}>No GPS location captured yet.</Text>
             )}
-            <ThemedText style={styles.addBtnText}>{latitude != null ? 'Refresh Location' : 'Get Location'}</ThemedText>
-          </TouchableOpacity>
-        </ThemedView>
 
-        <ThemedView style={styles.card}>
-          <ThemedText style={styles.sectionLabel}>Notes</ThemedText>
-          <TextInput style={[styles.inputField, styles.notesField]} placeholder="Additional notes…" value={notes} onChangeText={setNotes} multiline textAlignVertical="top" />
-        </ThemedView>
+            <TouchableOpacity
+              style={[styles.actionBtn, locLoading && styles.disabled]}
+              onPress={getLocation}
+              disabled={locLoading}>
+              {locLoading ? (
+                <ActivityIndicator size="small" color={Colors.dark} />
+              ) : (
+                <IconSymbol name="location.fill" size={18} color={Colors.dark} />
+              )}
+              <Text style={styles.actionBtnText}>
+                {latitude != null ? 'REFRESH GPS LOCATION' : 'GET GPS LOCATION'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
 
-        <TouchableOpacity style={styles.submitBtn} onPress={handlePreview} activeOpacity={0.85}>
-          <IconSymbol name="eye.fill" size={20} color="#fff" />
-          <ThemedText style={styles.submitText}>Preview Survey</ThemedText>
+        {/* Additional Notes Card */}
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>ADDITIONAL NOTES</Text>
+          <TextInput
+            style={[styles.inputField, styles.notesField]}
+            placeholder="Add any extra field inspection comments..."
+            value={notes}
+            onChangeText={setNotes}
+            multiline
+            textAlignVertical="top"
+            placeholderTextColor="#8679A8"
+          />
+        </View>
+
+        {/* Action Button */}
+        <TouchableOpacity
+          style={styles.previewBtn}
+          onPress={handlePreview}
+          activeOpacity={0.85}>
+          <IconSymbol name="eye.fill" size={20} color={Colors.dark} />
+          <Text style={styles.previewText}>PREVIEW SURVEY</Text>
         </TouchableOpacity>
       </ScrollView>
-    </ThemedView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  content: { padding: 20, paddingTop: 8 },
-  card: { padding: 16, borderRadius: 16, borderWidth: 1, borderColor: 'rgba(0,0,0,0.06)', marginBottom: 14 },
-  sectionLabel: { fontSize: 13, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5, opacity: 0.7, marginBottom: 10 },
-  photoRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  thumb: { width: 80, height: 80, borderRadius: 10 },
-  removeText: { color: '#d32f2f', fontWeight: '600' },
-  addBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, alignSelf: 'flex-start', paddingVertical: 8, paddingHorizontal: 14, borderRadius: 8, backgroundColor: '#e0f2f7' },
-  addBtnText: { color: '#0a7ea4', fontWeight: '600', fontSize: 14 },
-  disabled: { opacity: 0.6 },
-  locText: { fontSize: 14, color: '#333', marginBottom: 8 },
-  inputField: { height: 44, borderWidth: 1, borderColor: 'rgba(0,0,0,0.15)', borderRadius: 12, paddingHorizontal: 14, fontSize: 16 },
-  notesField: { height: 90, paddingTop: 12 },
-  submitBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: '#0a7ea4', borderRadius: 12, paddingVertical: 16, marginTop: 4, marginBottom: 30 },
-  submitText: { color: '#fff', fontSize: 17, fontWeight: '700' },
-  cameraContainer: { flex: 1, backgroundColor: '#000' },
-  cameraOverlay: { flex: 1, justifyContent: 'flex-end', alignItems: 'center', paddingBottom: 50 },
-  captureBtn: { width: 72, height: 72, borderRadius: 36, borderWidth: 5, borderColor: '#fff', alignItems: 'center', justifyContent: 'center', marginBottom: 20 },
-  captureInner: { width: 56, height: 56, borderRadius: 28, backgroundColor: '#fff' },
-  cancelBtn: { paddingVertical: 8, paddingHorizontal: 20 },
-  cancelText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  safeContainer: {
+    flex: 1,
+    backgroundColor: Colors.light.background,
+  },
+  content: {
+    padding: 16,
+    paddingBottom: 40,
+  },
+  card: {
+    padding: 16,
+    borderRadius: 14,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 2.5,
+    borderColor: Colors.dark,
+    shadowColor: Colors.dark,
+    shadowOffset: { width: 4, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 4,
+    marginBottom: 16,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  cardTitle: {
+    fontSize: 13,
+    fontWeight: '900',
+    color: Colors.dark,
+    letterSpacing: 0.8,
+    marginBottom: 10,
+  },
+  requiredNotice: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: Colors.danger,
+  },
+  photoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+  },
+  thumb: {
+    width: 84,
+    height: 84,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: Colors.dark,
+  },
+  photoMeta: {
+    flex: 1,
+    gap: 6,
+  },
+  photoCapturedText: {
+    fontSize: 13,
+    fontWeight: '900',
+    color: '#007A3D',
+  },
+  removeBtn: {
+    backgroundColor: Colors.dangerLight,
+    borderWidth: 1.5,
+    borderColor: Colors.danger,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    alignSelf: 'flex-start',
+  },
+  removeText: {
+    color: Colors.danger,
+    fontWeight: '900',
+    fontSize: 11,
+  },
+  actionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    alignSelf: 'flex-start',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 10,
+    backgroundColor: Colors.primary,
+    borderWidth: 2,
+    borderColor: Colors.dark,
+    shadowColor: Colors.dark,
+    shadowOffset: { width: 2, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 2,
+  },
+  actionBtnText: {
+    color: Colors.dark,
+    fontWeight: '900',
+    fontSize: 12,
+    letterSpacing: 0.5,
+  },
+  disabled: {
+    opacity: 0.6,
+  },
+  fieldBlock: {
+    marginBottom: 14,
+  },
+  fieldLabel: {
+    fontSize: 11,
+    fontWeight: '900',
+    color: Colors.dark,
+    letterSpacing: 0.8,
+    marginBottom: 6,
+  },
+  inputField: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 2.5,
+    borderColor: Colors.dark,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 15,
+    fontWeight: '700',
+    color: Colors.dark,
+    shadowColor: Colors.dark,
+    shadowOffset: { width: 2.5, height: 2.5 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 3,
+  },
+  locBadge: {
+    backgroundColor: Colors.dark,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    marginBottom: 8,
+  },
+  locText: {
+    color: Colors.primary,
+    fontSize: 12,
+    fontWeight: '900',
+  },
+  locEmpty: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: Colors.light.textMuted,
+    marginBottom: 8,
+  },
+  notesField: {
+    height: 90,
+    paddingTop: 12,
+  },
+  previewBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: Colors.primary,
+    borderRadius: 14,
+    borderWidth: 3,
+    borderColor: Colors.dark,
+    shadowColor: Colors.dark,
+    shadowOffset: { width: 4, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 5,
+    paddingVertical: 16,
+    marginTop: 6,
+    marginBottom: 20,
+  },
+  previewText: {
+    color: Colors.dark,
+    fontSize: 16,
+    fontWeight: '900',
+    letterSpacing: 0.8,
+  },
+  cameraContainer: {
+    flex: 1,
+    backgroundColor: '#000',
+  },
+  cameraOverlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    paddingBottom: 50,
+  },
+  captureBtn: {
+    width: 76,
+    height: 76,
+    borderRadius: 38,
+    borderWidth: 5,
+    borderColor: Colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+  },
+  captureInner: {
+    width: 58,
+    height: 58,
+    borderRadius: 29,
+    backgroundColor: Colors.primary,
+  },
+  cancelBtn: {
+    backgroundColor: Colors.danger,
+    paddingVertical: 10,
+    paddingHorizontal: 24,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: '#FFF',
+  },
+  cancelText: {
+    color: '#FFF',
+    fontSize: 14,
+    fontWeight: '900',
+  },
 });

@@ -1,11 +1,9 @@
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { type Href, Link } from 'expo-router';
+import * as Haptics from 'expo-haptics';
 
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { IconSymbol } from '@/components/ui/icon-symbol';
 
 export type QuickActionCardProps = {
   icon: React.ComponentProps<typeof IconSymbol>['name'];
@@ -22,21 +20,20 @@ export function QuickActionCard({
   color,
   href,
 }: QuickActionCardProps) {
-  const colorScheme = useColorScheme();
-  const tint = color ?? Colors[colorScheme ?? 'light'].tint;
+  const accentColor = color ?? Colors.primary;
 
   return (
     <Link href={href} asChild>
-      <TouchableOpacity activeOpacity={0.8}>
-        <ThemedView style={styles.card}>
-          <View style={[styles.iconWrap, { backgroundColor: `${tint}22` }]}>
-            <IconSymbol name={icon} size={26} color={tint} />
+      <TouchableOpacity
+        activeOpacity={0.8}
+        onPress={() => Haptics.selectionAsync()}>
+        <View style={styles.card}>
+          <View style={[styles.iconWrap, { backgroundColor: accentColor }]}>
+            <IconSymbol name={icon} size={24} color={Colors.dark} />
           </View>
-          <ThemedText style={styles.title}>{title}</ThemedText>
-          {subtitle ? (
-            <ThemedText style={styles.subtitle}>{subtitle}</ThemedText>
-          ) : null}
-        </ThemedView>
+          <Text style={styles.title}>{title}</Text>
+          {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+        </View>
       </TouchableOpacity>
     </Link>
   );
@@ -44,28 +41,38 @@ export function QuickActionCard({
 
 const styles = StyleSheet.create({
   card: {
-    width: 150,
-    padding: 16,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.06)',
+    width: 140,
+    padding: 14,
+    borderRadius: 14,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 2.5,
+    borderColor: Colors.dark,
+    shadowColor: Colors.dark,
+    shadowOffset: { width: 3.5, height: 3.5 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 4,
     marginRight: 12,
   },
   iconWrap: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
+    width: 44,
+    height: 44,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: Colors.dark,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 12,
+    marginBottom: 10,
   },
   title: {
-    fontSize: 15,
-    fontWeight: '600',
+    fontSize: 14,
+    fontWeight: '900',
+    color: Colors.dark,
   },
   subtitle: {
-    fontSize: 12,
-    opacity: 0.6,
+    fontSize: 11,
+    fontWeight: '700',
+    color: Colors.light.textMuted,
     marginTop: 2,
   },
 });

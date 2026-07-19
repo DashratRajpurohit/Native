@@ -1,8 +1,5 @@
-import { StyleSheet, TextInput, type TextInputProps } from 'react-native';
-
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { useThemeColor } from '@/hooks/use-theme-color';
+import { StyleSheet, Text, TextInput, type TextInputProps, View } from 'react-native';
+import { Colors } from '@/constants/theme';
 
 export type FormFieldProps = TextInputProps & {
   label: string;
@@ -17,30 +14,23 @@ export function FormField({
   style,
   ...rest
 }: FormFieldProps) {
-  const borderColor = useThemeColor(
-    { light: error ? '#d32f2f' : 'rgba(0,0,0,0.15)', dark: error ? '#ff6b6b' : 'rgba(255,255,255,0.2)' },
-    'text',
-  );
-
   return (
-    <ThemedView style={styles.wrap}>
-      <ThemedText style={styles.label}>{label}</ThemedText>
+    <View style={styles.wrap}>
+      <Text style={styles.label}>{label}</Text>
       <TextInput
         style={[
           styles.input,
           multiline && styles.multiline,
-          { borderColor, textAlignVertical: multiline ? 'top' : 'center' },
+          error ? styles.inputError : null,
           style,
         ]}
-        placeholderTextColor={useThemeColor(
-          { light: '#9ba1a6', dark: '#687076' },
-          'text',
-        )}
+        placeholderTextColor="#8679A8"
         multiline={multiline}
+        textAlignVertical={multiline ? 'top' : 'center'}
         {...rest}
       />
-      {error ? <ThemedText style={styles.error}>{error}</ThemedText> : null}
-    </ThemedView>
+      {error ? <Text style={styles.errorText}>⚠ {error}</Text> : null}
+    </View>
   );
 }
 
@@ -49,27 +39,41 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   label: {
-    fontSize: 13,
-    fontWeight: '600',
-    opacity: 0.7,
+    fontSize: 12,
+    fontWeight: '900',
+    color: Colors.dark,
     marginBottom: 6,
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: 0.8,
   },
   input: {
-    borderWidth: 1,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 2.5,
+    borderColor: Colors.dark,
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 12,
-    fontSize: 16,
+    fontSize: 15,
+    fontWeight: '700',
+    color: Colors.dark,
+    shadowColor: Colors.dark,
+    shadowOffset: { width: 2.5, height: 2.5 },
+    shadowOpacity: 1,
+    shadowRadius: 0,
+    elevation: 3,
+  },
+  inputError: {
+    borderColor: Colors.danger,
+    backgroundColor: Colors.dangerLight,
   },
   multiline: {
     height: 100,
     paddingTop: 12,
   },
-  error: {
-    color: '#d32f2f',
+  errorText: {
+    color: Colors.danger,
     fontSize: 12,
+    fontWeight: '900',
     marginTop: 6,
   },
 });
