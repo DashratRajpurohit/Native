@@ -4,7 +4,7 @@
     "slug": "CommanApp",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/icon.webp",
     "scheme": "commanapp",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -12,8 +12,10 @@
       "supportsTablet": true,
       "infoPlist": {
         "NSCameraUsageDescription": "This app uses the camera to capture selfie photos for attendance.",
-        "NSLocationWhenInUseUsageDescription": "This app uses your location to mark attendance."
-      }
+        "NSLocationWhenInUseUsageDescription": "This app uses your location to mark attendance.",
+        "ITSAppUsesNonExemptEncryption": false
+      },
+      "bundleIdentifier": "com.dashratrajpurohit.CommanApp"
     },
     "android": {
       "adaptiveIcon": {
@@ -27,7 +29,12 @@
       "permissions": [
         "CAMERA",
         "ACCESS_FINE_LOCATION",
-        "ACCESS_COARSE_LOCATION"
+        "ACCESS_COARSE_LOCATION",
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.MODIFY_AUDIO_SETTINGS"
       ]
     },
     "web": {
@@ -65,6 +72,12 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "afc85026-5bbd-4868-b15b-2f2bea8e563d"
+      }
     }
   }
 }

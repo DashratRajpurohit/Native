@@ -1,0 +1,53 @@
+{
+  "expo": {
+    "name": "Travel Guardian",
+    "slug": "Assignment",
+    "version": "1.0.0",
+    "scheme": "travelguardian",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#E6F4FE",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
+    },
+    "plugins": [
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow Travel Guardian to access your camera to use the live camera preview.",
+          "microphonePermission": "Allow Travel Guardian to access the microphone to record videos with sound.",
+          "recordAudioAndroid": true
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Allow Travel Guardian to use your location to track your travels and attach addresses to photos."
+        }
+      ],
+      "expo-router",
+      "expo-video",
+      "expo-secure-store",
+      "expo-font",
+      "expo-sharing",
+      "expo-status-bar"
+    ]
+  }
+}
